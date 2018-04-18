@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 
 import com.dani2pix.rssrecipr.R
+import com.dani2pix.rssrecipr.algorithm.ClusteringUtils
 import com.dani2pix.rssrecipr.util.XmlParser
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import kotlinx.coroutines.experimental.android.UI
@@ -30,6 +31,9 @@ class DashboardFragment : Fragment() {
 
                 articlesList.layoutManager = LinearLayoutManager(activity)
                 articlesList.adapter = articlesAdapter
+
+
+                ClusteringUtils.cleanContent(items)
             }
         }
 
