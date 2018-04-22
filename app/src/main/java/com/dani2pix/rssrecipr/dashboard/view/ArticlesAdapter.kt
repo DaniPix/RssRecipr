@@ -7,14 +7,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.dani2pix.rssrecipr.R
-import com.dani2pix.rssrecipr.dashboard.model.FeedEntry
+import com.dani2pix.rssrecipr.RssReciprActivity
+import com.dani2pix.rssrecipr.database.Articles
 import com.dani2pix.rssrecipr.util.PicassoImageGetter
 
 /**
  * Created by dandomnica on 2018-04-11.
  */
-class ArticlesAdapter(private val context: Context, private val items: MutableList<FeedEntry>) : RecyclerView.Adapter<ArticlesViewHolder>() {
-
+class ArticlesAdapter(private val context: Context, private val items: List<Articles>, private val dashboard: Boolean) : RecyclerView.Adapter<ArticlesViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ArticlesViewHolder {
         val view: View = LayoutInflater.from(context).inflate(R.layout.article_item_view, parent, false)
@@ -25,10 +25,15 @@ class ArticlesAdapter(private val context: Context, private val items: MutableLi
     override fun onBindViewHolder(holder: ArticlesViewHolder, position: Int) {
         val feedEntry = items[position]
 
-        holder.title?.setText(feedEntry.title)
-        holder.description?.setText(Html.fromHtml(feedEntry.description, Html.FROM_HTML_MODE_LEGACY, PicassoImageGetter(context.resources, holder.description), null))
+        holder.title?.setText(feedEntry.articleTitle)
+        holder.description?.setText(Html.fromHtml(feedEntry.articleContent, Html.FROM_HTML_MODE_LEGACY, PicassoImageGetter(context.resources, holder.description), null))
+        if (dashboard) {
+            holder.read.setVisibility(View.VISIBLE)
+        }
+        holder.read?.setOnClickListener {
+            RssReciprActivity.startActivityWithArgs(context, R.string.title_subscription, RssReciprActivity.FRAGMENT_GROUP, feedEntry.articleId)
+        }
     }
-
 
     override fun getItemCount(): Int {
         return items.size

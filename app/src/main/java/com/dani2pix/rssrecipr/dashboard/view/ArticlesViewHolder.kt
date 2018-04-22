@@ -11,5 +11,6 @@ class ArticlesViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
 
     val title = view.articleTitle
     val description = view.articleDescription
+    val read = view.readSimilarArticles
 
 }

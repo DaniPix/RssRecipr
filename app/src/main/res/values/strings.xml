@@ -2,6 +2,6 @@
     <string name="app_name">RssRecipr</string>
 
     <string name="title_default">RssRecipr</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_subscription">Subscriptions</string>
+    <string name="title_dashboard">Home</string>
+    <string name="title_subscription">Interests</string>
 </resources>

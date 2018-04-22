@@ -1,78 +1,137 @@
 package com.dani2pix.rssrecipr.algorithm
 
-import android.text.Html
-import android.text.TextUtils
-import android.util.Log
-import com.dani2pix.rssrecipr.dashboard.model.FeedEntry
-import java.util.*
-import kotlin.collections.ArrayList
+import com.dani2pix.rssrecipr.database.Articles
 
 /**
  * Created by dandomnica on 2018-04-18.
  */
 class ClusteringUtils {
-
-
     companion object {
-        private val stopWords: MutableList<String> = mutableListOf("a", "able", "about",
-                "across", "after", "all", "almost", "also", "am", "among", "an",
-                "and", "any", "are", "as", "at", "be", "because", "been", "but",
-                "by", "can", "cannot", "could", "dear", "did", "do", "does",
-                "either", "else", "ever", "every", "for", "from", "get", "got",
-                "had", "has", "have", "he", "her", "hers", "him", "his", "how",
-                "however", "i", "if", "in", "into", "is", "it", "its", "just",
-                "least", "let", "like", "likely", "may", "me", "might", "most",
-                "must", "my", "neither", "no", "nor", "not", "of", "off", "often",
-                "on", "only", "or", "other", "our", "own", "rather", "said", "say",
-                "says", "she", "should", "since", "so", "some", "than", "that",
-                "the", "their", "them", "then", "there", "these", "they", "this",
-                "tis", "to", "too", "twas", "us", "wants", "was", "we", "were",
-                "what", "when", "where", "which", "while", "who", "whom", "why",
-                "will", "with", "would", "yet", "you", "your")
 
-        private val stemmer: Stemmer = Stemmer()
-        private val dictionary: MutableSet<String> = mutableSetOf()
+        private val articlesIdList = mutableListOf<String>()
+        /**
+         * Build the similarity matrix for the articles
+         */
+        fun generateSimilarityMatrix(entries: MutableList<Articles>, numberOfClusters: Int) {
+            articlesIdList.clear()
+            for(entry in entries){
+                articlesIdList.add(entry.articleId)
+            }
 
-        fun cleanContent(entries: MutableList<FeedEntry>) {
 
-            val items = mutableListOf<FeedEntry>()
-            items.addAll(entries)
+            val frequencyList = buildFrequencyList(ContentUtils.cleanContent(entries))
+            val similarityMatrix = Array(frequencyList.size) { Array(frequencyList.size) { 0.0 } }
 
-            for ((index, value) in items.withIndex()) {
-                val item = items[index]
-                var content = item.description
-                content = Html.fromHtml(content, Html.FROM_HTML_MODE_LEGACY).toString()
-                content = content.replace("\\d".toRegex(), "")
-                content = content.replace("\\t".toRegex(), "")
-                content = content.replace("\\n".toRegex(), "")
-                content = content.replace("\\p{Punct}".toRegex(), "")
-                content = content.replace("\\p{Sc}".toRegex(), "")
-                content = content.replace("( )+".toRegex(), " ")
-                content = content.toLowerCase()
-                Log.d("ClusteringUtils", content)
+            for ((rowIndex, rowVal) in frequencyList.withIndex()) {
+                for ((colIndex, colVal) in frequencyList.withIndex()) {
+                    if (rowIndex == colIndex) {
+                        similarityMatrix[rowIndex][colIndex] = 0.0
+                    } else {
+                        similarityMatrix[rowIndex][colIndex] = CosineSimilarity.cosineSimilarity(rowVal, colVal)
+                    }
+                }
+            }
 
-                val cleanedContent = cleanDescription(content)
+            var iterations = 0
+            while (iterations < numberOfClusters) {
+                mergeClusters(similarityMatrix, frequencyList, entries)
+                iterations++
+            }
+            articlesIdList.removeIf { it.equals("*") }
+        }
+
+        /**
+         * Generate the frequency list for all articles
+         * (e.g. 10 articles = 10 entries inside the frequency list)
+         */
+        private fun buildFrequencyList(entries: MutableList<Articles>): MutableList<DoubleArray> {
+
+            val frequencyList: MutableList<DoubleArray> = mutableListOf()
+            val dictionary = ContentUtils.getWordsDictionary()
+
+            for (entry in entries) {
+                val frequencyArray = DoubleArray(dictionary.size)
+                for ((index, value) in entry.contentToTransform.withIndex()) {
+                    if (dictionary.contains(value)) {
+                        frequencyArray[index]++
+                    }
+                }
+                frequencyList.add(frequencyArray)
+            }
+
+            return frequencyList
+        }
+
+        private fun mergeClusters(similarityMatrix: Array<Array<Double>>, frequencyList: MutableList<DoubleArray>, entries: MutableList<Articles>): Array<Array<Double>> {
+
+            val minRowIndices = getMinIndices(true, frequencyList, similarityMatrix, entries)
+            val minColIndices = getMinIndices(false, frequencyList, similarityMatrix, entries)
+
+            val clusteredId = articlesIdList[minRowIndices] + "%%%" + articlesIdList[minColIndices]
+            articlesIdList[minRowIndices] = clusteredId
+            articlesIdList[minColIndices] = "*"
+
+            var index = 0
+            while (index < frequencyList.size / 2) {
+                if (similarityMatrix[index][minRowIndices] > similarityMatrix[index][minColIndices]) {
+                    similarityMatrix[index][minRowIndices] = similarityMatrix[index][minColIndices]
+                }
+                similarityMatrix[minRowIndices][index] = similarityMatrix[index][minRowIndices]
+                index++
+            }
+
+            index = 0
+            while (index < frequencyList.size / 2) {
+                if (similarityMatrix[minRowIndices][index] > similarityMatrix[minColIndices][index]) {
+                    similarityMatrix[minRowIndices][index] = similarityMatrix[minColIndices][index]
+                }
+                similarityMatrix[index][minRowIndices] = similarityMatrix[minRowIndices][index]
+                index++
+            }
+
+            for (rowIndex in frequencyList.indices) {
+                for (colIndex in frequencyList.indices) {
+                    if (rowIndex == colIndex) {
+                        similarityMatrix[rowIndex][colIndex] = 0.0
+                    }
+                }
+            }
+
+            // add zeroes instead of removing row and column
+            for (indices in frequencyList.indices) {
+                similarityMatrix[indices][minColIndices] = 0.0
+                similarityMatrix[minColIndices][indices] = 0.0
+            }
+            return similarityMatrix
+        }
+
+        /**
+         * Get the indices for the minimum values on row and column
+         */
+        private fun getMinIndices(isRow: Boolean, frequencyList: MutableList<DoubleArray>, similarityMatrix: Array<Array<Double>>, entries: MutableList<Articles>): Int {
+            var infinity = Double.POSITIVE_INFINITY
+            var minRowIndex = 0
+            var minColIndex = 0
+
+            for (rowIndex in frequencyList.indices) {
+                for (colIndex in frequencyList.indices) {
+                    if (similarityMatrix[rowIndex][colIndex] != 0.0) {
+                        if (similarityMatrix[rowIndex][colIndex] < infinity) {
+                            infinity = similarityMatrix[rowIndex][colIndex]
+                            minRowIndex = rowIndex
+                            minColIndex = colIndex
+                        }
+                    }
+                }
+            }
+            return when (isRow) {
+                true -> minRowIndex
+                else -> minColIndex
             }
         }
 
-        private fun cleanDescription(content: String): String {
-            val contentList: MutableList<String> = content.split("\\s+".toRegex()).toMutableList()
-            for ((index, value) in contentList.withIndex()) {
-                for (stopWord in stopWords) {
-                    if (value == stopWord) {
-                        contentList[index] = ""
-                        break
-                    }
-                }
-                if (contentList[index] != "") {
-                    stemmer.add(value.toCharArray(), value.length)
-                    stemmer.stem()
-                    contentList[index] = stemmer.toString()
-                    dictionary.add(value)
-                }
-            }
-            contentList.removeAll(listOf(""))
-            return contentList.toString()
+        fun getClusteredGroups(): MutableList<String> {
+            return articlesIdList
         }
     }
 }
