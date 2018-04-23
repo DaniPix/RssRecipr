@@ -8,18 +8,20 @@ import com.dani2pix.rssrecipr.database.Articles
 class ClusteringUtils {
     companion object {
 
-        private val articlesIdList = mutableListOf<String>()
+        private val clusters = mutableListOf<String>()
+
         /**
          * Build the similarity matrix for the articles
          */
-        fun generateSimilarityMatrix(entries: MutableList<Articles>, numberOfClusters: Int) {
-            articlesIdList.clear()
-            for(entry in entries){
-                articlesIdList.add(entry.articleId)
+        fun generateSimilarityMatrix(contentToCluster: MutableList<Articles>, dictionary: MutableSet<String>, numberOfClusters: Int) : MutableList<String>{
+            clusters.clear()
+
+            for (entry in contentToCluster) {
+                // Generate initial clusters
+                clusters.add(entry.articleId)
             }
 
-
-            val frequencyList = buildFrequencyList(ContentUtils.cleanContent(entries))
+            val frequencyList = buildFrequencyList(contentToCluster, dictionary)
             val similarityMatrix = Array(frequencyList.size) { Array(frequencyList.size) { 0.0 } }
 
             for ((rowIndex, rowVal) in frequencyList.withIndex()) {
@@ -34,20 +36,22 @@ class ClusteringUtils {
 
             var iterations = 0
             while (iterations < numberOfClusters) {
-                mergeClusters(similarityMatrix, frequencyList, entries)
+                mergeClusters(similarityMatrix, frequencyList, contentToCluster)
                 iterations++
             }
-            articlesIdList.removeIf { it.equals("*") }
+
+            // Remove empty clusters
+            clusters.removeIf { it.equals("*") }
+
+            return clusters
         }
 
         /**
          * Generate the frequency list for all articles
          * (e.g. 10 articles = 10 entries inside the frequency list)
          */
-        private fun buildFrequencyList(entries: MutableList<Articles>): MutableList<DoubleArray> {
-
+        private fun buildFrequencyList(entries: MutableList<Articles>, dictionary: MutableSet<String>): MutableList<DoubleArray> {
             val frequencyList: MutableList<DoubleArray> = mutableListOf()
-            val dictionary = ContentUtils.getWordsDictionary()
 
             for (entry in entries) {
                 val frequencyArray = DoubleArray(dictionary.size)
@@ -67,9 +71,9 @@ class ClusteringUtils {
             val minRowIndices = getMinIndices(true, frequencyList, similarityMatrix, entries)
             val minColIndices = getMinIndices(false, frequencyList, similarityMatrix, entries)
 
-            val clusteredId = articlesIdList[minRowIndices] + "%%%" + articlesIdList[minColIndices]
-            articlesIdList[minRowIndices] = clusteredId
-            articlesIdList[minColIndices] = "*"
+            val clusteredId = clusters[minRowIndices] + "%%%" + clusters[minColIndices]
+            clusters[minRowIndices] = clusteredId
+            clusters[minColIndices] = "*"
 
             var index = 0
             while (index < frequencyList.size / 2) {
@@ -131,7 +135,7 @@ class ClusteringUtils {
         }
 
         fun getClusteredGroups(): MutableList<String> {
-            return articlesIdList
+            return clusters
         }
     }
 }

@@ -12,6 +12,8 @@ import com.dani2pix.rssrecipr.Injection
 import com.dani2pix.rssrecipr.R
 import com.dani2pix.rssrecipr.RssReciprActivity.Companion.EXTRA_ARGS
 import com.dani2pix.rssrecipr.algorithm.ClusteringUtils
+import com.dani2pix.rssrecipr.algorithm.ContentUtils
+import com.dani2pix.rssrecipr.database.Articles
 import kotlinx.android.synthetic.main.fragment_dashboard.*
 import kotlinx.coroutines.experimental.android.UI
 import kotlinx.coroutines.experimental.launch
@@ -40,7 +42,9 @@ class GroupFragment : Fragment() {
             val allArticles = articlesDataSource?.getAllArticles()
 
             if (allArticles != null) {
-                ClusteringUtils.generateSimilarityMatrix(allArticles.toMutableList(), 15)
+                val entriesToCluster = ContentUtils.prepareEntriesForClustering(allArticles)
+                val dictionary = ContentUtils.generateDictionary(entriesToCluster)
+                ClusteringUtils.generateSimilarityMatrix(entriesToCluster,  dictionary,15)
                 val groups = ClusteringUtils.getClusteredGroups()
                 for (group in groups) {
                     if (group.contains(articleId)) {

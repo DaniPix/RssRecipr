@@ -3,9 +3,6 @@ package com.dani2pix.rssrecipr.algorithm
 import android.text.Html
 import com.dani2pix.rssrecipr.database.Articles
 
-/**
- * Created by dandomnica on 2018-04-21.
- */
 class ContentUtils {
     companion object {
         /**
@@ -27,32 +24,47 @@ class ContentUtils {
                 "whom", "why", "will", "with", "would", "yet", "you", "your")
 
         private val stemming: Stemmer = Stemmer()
-        private val dictionary = mutableSetOf<String>()
 
-        fun cleanContent(articles: MutableList<Articles>): MutableList<Articles> {
-            val entries = mutableListOf<Articles>()
+
+        fun prepareEntriesForClustering(articles: List<Articles>): MutableList<Articles> {
+            val entriesToCluster = mutableListOf<Articles>()
+
             for (article in articles) {
-                var content = article.articleContent
-                content = Html.fromHtml(content, Html.FROM_HTML_MODE_LEGACY).toString()
-                content = content.replace("\\d".toRegex(), "")
-                content = content.replace("\\t".toRegex(), "")
-                content = content.replace("\\n".toRegex(), "")
-                content = content.replace("\\p{Punct}".toRegex(), "")
-                content = content.replace("\\p{Sc}".toRegex(), "")
-                content = content.replace("( )+".toRegex(), " ")
-                content = content.toLowerCase()
-                article.contentToTransform = removeStopWordsAndApplyWordStemming(content)
-                entries.add(article)
+                val contentToTransform = removeStopWordsAndApplyWordStemming(cleanContentFromPunctuationAndHtmlTags(article.articleContent))
+                article.contentToTransform = contentToTransform
+                entriesToCluster.add(article)
             }
-            return entries
+
+            return entriesToCluster
+        }
+
+        /**
+         * Attempt to remove punctuation and HTML tags
+         */
+        private fun cleanContentFromPunctuationAndHtmlTags(articleContent: String): String {
+
+            var content = articleContent
+
+            //content = Html.fromHtml(content, Html.FROM_HTML_MODE_LEGACY).toString()
+            content = content.replace("\\d".toRegex(), "")
+            content = content.replace("\\t".toRegex(), "")
+            content = content.replace("\\n".toRegex(), "")
+            content = content.replace("\\p{Punct}".toRegex(), "")
+            content = content.replace("\\p{Sc}".toRegex(), "")
+            content = content.replace("( )+".toRegex(), " ")
+            content = content.toLowerCase()
+
+            return content
         }
 
         /**
          * Remove stop words from content and apply stemming to words
          */
         private fun removeStopWordsAndApplyWordStemming(content: String): MutableList<String> {
+
             val contentList = content.split("\\s+".toRegex()).toMutableList()
 
+            // replace every stop word with an empty string value
             for ((index, value) in contentList.withIndex()) {
                 for (stopWord in STOP_WORDS) {
                     if (value == stopWord) {
@@ -61,24 +73,28 @@ class ContentUtils {
                         break
                     }
                 }
+
                 // apply word stemming for each word in content array
                 if (contentList[index] != "") {
                     stemming.add(value.toCharArray(), value.length)
                     stemming.stem()
                     contentList[index] = stemming.toString()
-                    dictionary.add(value)
                 }
             }
+
             // remove all empty strings
             contentList.removeAll(listOf(""))
 
             return contentList
         }
 
-        /**
-         * Retrieve current dictionary
-         */
-        fun getWordsDictionary(): Set<String> {
+        fun generateDictionary(articles: MutableList<Articles>): MutableSet<String> {
+            val dictionary = mutableSetOf<String>()
+            for (article in articles) {
+                for (word in article.contentToTransform) {
+                    dictionary.add(word)
+                }
+            }
             return dictionary
         }
     }
