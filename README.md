@@ -54,5 +54,21 @@ Kotlin
 class Article constructor(title: String) { }
 ```
 
+Java
+```
+fruits.stream().filter(x -> x.startsWith(“a”))
+ .sorted((x,y) -> x.compareTo(y))
+ .map(x -> x.toUpperCase())
+ .forEach(x -> System.out.println(x));
+ ```
+ 
+Kotlin
+```
+fruits
+.filter { it.startsWith(“a”) }
+.sortedBy { it }
+.map { it.toUpperCase() }
+.forEach { println(it) }
+```
 
 
