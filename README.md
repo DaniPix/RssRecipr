@@ -76,7 +76,6 @@ withContext(UI) is basically the equivalent of subscribeOn(AndroidSchedulers.mai
 
 
 How about returning something ?
-RxJava
 
 Given the following
 ``` 
@@ -84,9 +83,11 @@ private fun fib(n: Long): Long {
     return if (n <= 1) n        
     else fib(n - 1) + fib(n - 2)    
 }
+``` 
 
-# RxJava approach
+RxJava approach
 
+``` 
 fun fibonacciAsync(number: Long): Single<Long> = 
     Single.create({ emitter ->
             val result = fib(number) 
@@ -107,9 +108,11 @@ fun onButtonClicked() {
            // Error happened
        })
 }
+``` 
 
-#Kotlin approach
+Kotlin approach
 
+``` 
 @OnClick(R.id.generateFibo)
 fun onButtonClicked() { 
     launch(CommonPool) {
@@ -123,5 +126,16 @@ fun onButtonClicked() {
 }
 ``` 
  
+ Cancelling Coroutines 
+ ``` 
+ val job = launch(CommonPool) {
+    for (i in 1..5) {
+        if (!isActive) { break }
+        heavyComputation()
+    }
+}
+// will cancel the job
+job.cancel()
+``` 
 
 
