@@ -1,58 +1,6 @@
 # RssRecipr
 
-
 # Kotlin Key Notes
-
-Java
-```
-public int sum(int a, int b){
- return a+b;
-}
-```
-
-Kotlin
-```
-fun sum(a: Int, b: Int): Int {
- return a + b
-}
-```
-
-Java
-```
-final int a = 2;
-final Integer b = 2;
-final int c;
-c = 3;
-//Mutable variable
-int x = 5;
-x+=1;
-```
-
-Kotlin
-```
-val a: Int = 1 // immediate assignment
-val b = 2 // `Int` type is inferred
-val c: Int // Type required when no initializer is provided
-c = 3 // deferred assignment
-//Mutable variable
-var x = 5 // `Int` type is inferred
-x += 1
-```
-
-Java
-```
-class Article {
-  String title;
-  public Article(String title){
-    this.title = title
-  }
-}
-```
-
-Kotlin
-```
-class Article constructor(title: String) { }
-```
 
 Java
 ```
@@ -70,5 +18,110 @@ fruits
 .map { it.toUpperCase() }
 .forEach { println(it) }
 ```
+
+# Coroutines 
+
+RxJava Approach
+```
+fun initializeObjectsAsync(): Completable {
+    return Completable.fromCallable({
+            heavyInitialization()
+    })
+}
+
+```
+How do we consume this method in RxJava ?
+```
+fun initializeObjects() {
+    initializeObjectsAsync()
+        .subscribeOn(Schedulers.computation()) 
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribe({
+            // Do whatever UI related changes
+        }, {
+            // Something went wrong 
+        })
+}
+```
+
+Kotlin Coroutines Approach
+```
+fun initializeObjects() {
+    launch(CommonPool) {
+        heavyInitialization()
+    }
+}
+```
+In the example above you are just doing something inside a pool thread, we don't know when the execution has finished.
+CommonPool is a CoroutineDispatcher and is similar to RxJava computation which will spawn as many threads as cores are available on device minus one. (4 cores devices -> maximum 3 parallel executions on CommonPool)
+
+```
+fun initializeObjects() {
+    launch(CommonPool) {
+        try {
+            heavyInitialization()
+            // The initialization succeeded!
+            withContext(UI) {
+                // We can perform UI changes here
+            }
+        } catch (e: Exception) {
+            // An Error occurred!
+        }
+    }
+}
+``` 
+Since the code inside a Coroutine is executed sequentially (also known as suspending lambda), the line after heavyInitialization() will be executed after has finished. Basically withContext(UI) will be invoked after this line of code is finished. 
+
+withContext(UI) is basically the equivalent of subscribeOn(AndroidSchedulers.mainThread())
+
+
+How about returning something ?
+RxJava
+
+Given the following
+``` 
+private fun fib(n: Long): Long {        
+    return if (n <= 1) n        
+    else fib(n - 1) + fib(n - 2)    
+}
+
+# RxJava approach
+
+fun fibonacciAsync(number: Long): Single<Long> = 
+    Single.create({ emitter ->
+            val result = fib(number) 
+            if (emitter != null && !emitter.isDisposed) {       
+                 emitter.onSuccess(result)
+            }
+})
+
+@OnClick(R.id.generateFibo)
+fun onButtonClicked() { 
+    fibonacciAsync(numberInputEditText.text.toString().toLong())
+       .subscribeOn(Schedulers.computation())
+       .observeOn(AndroidSchedulers.mainThread())
+       .subscribe({ fibonacciNumber -> 
+           //Update UI with the result 
+           result.text = fibonacciNumber
+       },{
+           // Error happened
+       })
+}
+
+#Kotlin approach
+
+@OnClick(R.id.generateFibo)
+fun onButtonClicked() { 
+    launch(CommonPool) {
+        val result = fib(
+            numberInputEditText.text.toString().toLong()
+        )
+        withContext(UI) {
+            result.text = result
+        }
+    }
+}
+``` 
+ 
 
 
