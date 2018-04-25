@@ -7,7 +7,7 @@
 
 Java
 ```
-fruits.stream().filter(x -> x.startsWith(“a”))
+listOfGames.stream().filter(x -> x.endsWith(“0”))
  .sorted((x,y) -> x.compareTo(y))
  .map(x -> x.toUpperCase())
  .forEach(x -> System.out.println(x));
@@ -15,12 +15,56 @@ fruits.stream().filter(x -> x.startsWith(“a”))
  
 Kotlin
 ```
-fruits
-.filter { it.startsWith(“a”) }
-.sortedBy { it }
-.map { it.toUpperCase() }
-.forEach { println(it) }
+ @Test
+    fun testKotlinCollectionsSequences(){
+        val listOfGames = mutableListOf<String>()
+        for(i in 1..100){
+            listOfGames.add("Starcraft$i")
+        }
+
+        val listOfUpdatedGames =
+                listOfGames
+                        .asSequence()
+                        .filter { it.endsWith("0") }
+                        .take(5)
+                        .toList()
+
+        for(game in listOfUpdatedGames){
+            println(game)
+        }
+    }
 ```
+
+Static variables or methods
+
+```
+  companion object {
+        private val EXTRA_FRAGMENT: String = "extraFragment"
+        private val EXTRA_TITLE_RES: String = "extraTitleRes"
+  }
+```
+
+Safe calls
+```
+getActivity()?.getContext()
+```
+
+Elvis operator
+```
+val length = b?.length ?: -1
+
+```
+
+The !! Operator (pretty much the only way to assure an NPE will be thrown)
+```
+val l = b!!.length
+```
+
+Safe casts
+```
+val aInt: Int? = a as? Int
+```
+
 
 # Coroutines 
 
