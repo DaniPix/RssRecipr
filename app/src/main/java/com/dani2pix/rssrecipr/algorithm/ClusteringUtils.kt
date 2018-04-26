@@ -71,7 +71,7 @@ class ClusteringUtils {
             val minRowIndices = getMinIndices(true, frequencyList, similarityMatrix, entries)
             val minColIndices = getMinIndices(false, frequencyList, similarityMatrix, entries)
 
-            val clusteredId = clusters[minRowIndices] + "%%%" + clusters[minColIndices]
+            val clusteredId = clusters[minRowIndices] + "+++" + clusters[minColIndices]
             clusters[minRowIndices] = clusteredId
             clusters[minColIndices] = "*"
 
@@ -98,7 +98,10 @@ class ClusteringUtils {
                     if (rowIndex == colIndex) {
                         similarityMatrix[rowIndex][colIndex] = 0.0
                     }
+                    print(similarityMatrix[rowIndex][colIndex])
+                    print("  ")
                 }
+                println()
             }
 
             // add zeroes instead of removing row and column
@@ -106,6 +109,7 @@ class ClusteringUtils {
                 similarityMatrix[indices][minColIndices] = 0.0
                 similarityMatrix[minColIndices][indices] = 0.0
             }
+            println("-----------------------------------------------------------------")
             return similarityMatrix
         }
 

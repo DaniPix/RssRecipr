@@ -44,7 +44,7 @@ class GroupFragment : Fragment() {
             if (allArticles != null) {
                 val entriesToCluster = ContentUtils.prepareEntriesForClustering(allArticles)
                 val dictionary = ContentUtils.generateDictionary(entriesToCluster)
-                ClusteringUtils.generateSimilarityMatrix(entriesToCluster,  dictionary,15)
+                ClusteringUtils.generateSimilarityMatrix(entriesToCluster,  dictionary,10)
                 val groups = ClusteringUtils.getClusteredGroups()
                 for (group in groups) {
                     if (group.contains(articleId)) {

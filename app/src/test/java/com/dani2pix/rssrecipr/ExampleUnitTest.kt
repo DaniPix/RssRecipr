@@ -14,4 +14,13 @@ class ExampleUnitTest {
     fun addition_isCorrect() {
         assertEquals(4, 2 + 2)
     }
+
+    @Test
+    fun firstOneMillionNumbers() {
+        for (i in 1..1000000) {
+            print(i)
+        }
+
+        assertTrue(true)
+    }
 }
